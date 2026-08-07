@@ -85,7 +85,17 @@ Gruppen teilen aktuell nur Inhalte (Aufnahmen, Vokabelkarten) — kein Freitext-
 
 ## Login
 
-Per E-Mail + Passwort (mit Registrieren-Option) oder passwortlos per Magic Link — umschaltbar auf dem Login-Screen.
+Per E-Mail + Passwort (mit Registrieren-Option), passwortlos per Magic Link, oder mit Google — umschaltbar auf dem Login-Screen.
+
+### Google-Login aktivieren (optional, kostenlos)
+
+Ohne diesen Schritt zeigt der "Mit Google anmelden"-Button einen Fehler. Einmalig einrichten:
+
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → neues Projekt (oder bestehendes nutzen) → **OAuth consent screen** einmal durchklicken (External, App-Name z.B. "ROBORA", deine E-Mail als Kontakt).
+2. **Credentials → Create Credentials → OAuth client ID** → Typ "Web application".
+3. In Supabase unter **Authentication → Providers → Google** die **Callback-URL** kopieren (Format `https://<projekt>.supabase.co/auth/v1/callback`) und bei Google unter "Authorized redirect URIs" eintragen.
+4. Den generierten **Client ID** + **Client Secret** von Google zurück in Supabase bei **Authentication → Providers → Google** eintragen und den Provider aktivieren.
+5. Fertig — kein Code-Änderung nötig, der Button funktioniert direkt.
 
 ## Hinweis zur Sprachausgabe
 
