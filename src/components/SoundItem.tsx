@@ -52,83 +52,83 @@ export default function SoundItem({
 
   return (
     <li
-      className={`flex items-center gap-2.5 rounded-xl border p-3 transition ${
+      className={`space-y-3 rounded-xl border p-4 transition ${
         isCurrent ? "border-terracotta/50 bg-terracotta/10" : "border-parchment/10 bg-ink-2"
       }`}
     >
-      {onAvatarClick && (
-        <button onClick={onAvatarClick} title="Profil ansehen" className="shrink-0">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
+      <div className="flex items-start gap-3">
+        <button
+          onClick={() => player.play(toTrack(r), queue.map(toTrack))}
+          disabled={!url}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink-3 disabled:opacity-30"
+        >
+          {isCurrent && player.isPlaying ? (
+            <Pause className="h-4 w-4 text-parchment" fill="currentColor" />
           ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-3">
-              <UserIcon className="h-4 w-4 text-parchment-dim" />
-            </span>
+            <Play className="ml-0.5 h-4 w-4 text-parchment" fill="currentColor" />
           )}
         </button>
-      )}
-      <button
-        onClick={() => player.play(toTrack(r), queue.map(toTrack))}
-        disabled={!url}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink-3 disabled:opacity-30"
-      >
-        {isCurrent && player.isPlaying ? (
-          <Pause className="h-4 w-4 text-parchment" fill="currentColor" />
-        ) : (
-          <Play className="ml-0.5 h-4 w-4 text-parchment" fill="currentColor" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium leading-snug text-parchment">{r.title}</p>
+          <p className="mt-0.5 text-xs text-parchment-dim">
+            {r.tag} · {formatTime(r.duration ?? 0)}
+          </p>
+        </div>
+        {onAvatarClick && (
+          <button onClick={onAvatarClick} title="Profil ansehen" className="flex shrink-0 items-center gap-1.5">
+            {posterName && <span className="max-w-20 truncate text-xs text-parchment-dim">{posterName}</span>}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-3">
+                <UserIcon className="h-3.5 w-3.5 text-parchment-dim" />
+              </span>
+            )}
+          </button>
         )}
-      </button>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-parchment">{r.title}</p>
-        <p className="truncate text-xs text-parchment-dim">
-          {r.tag} · {formatTime(r.duration ?? 0)}
-          {posterName && <span className="text-parchment-dim/60"> · {posterName}</span>}
-        </p>
       </div>
-      {onToggleLike && (
-        <button onClick={onToggleLike} className={`flex shrink-0 items-center gap-1 ${liked ? "text-red-400" : "text-parchment-dim/70"}`}>
-          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
-          {!!likeCount && <span className="text-[10px]">{likeCount}</span>}
-        </button>
-      )}
-      {onToggleSave && (
+
+      <div className="flex items-center justify-end gap-4 border-t border-parchment/10 pt-3 text-parchment-dim/70">
+        {onToggleLike && (
+          <button onClick={onToggleLike} className={`flex items-center gap-1 ${liked ? "text-red-400" : ""}`}>
+            <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
+            {!!likeCount && <span className="text-xs">{likeCount}</span>}
+          </button>
+        )}
+        {onToggleSave && (
+          <button
+            onClick={onToggleSave}
+            className={saved ? "text-gold" : ""}
+            title={saved ? "Aus Gespeichert entfernen" : "Speichern"}
+          >
+            <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} />
+          </button>
+        )}
         <button
-          onClick={onToggleSave}
-          className={`shrink-0 ${saved ? "text-gold" : "text-parchment-dim/70"}`}
-          title={saved ? "Aus Gespeichert entfernen" : "Speichern"}
+          onClick={() => url && player.addToQueue(toTrack(r))}
+          disabled={!url}
+          className="disabled:opacity-30"
+          title="Zur Warteschlange hinzufügen"
         >
-          <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} />
+          <ListPlus className="h-4 w-4" />
         </button>
-      )}
-      <button
-        onClick={() => url && player.addToQueue(toTrack(r))}
-        disabled={!url}
-        className="shrink-0 text-parchment-dim/70 disabled:opacity-30"
-        title="Zur Warteschlange hinzufügen"
-      >
-        <ListPlus className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => url && share(r, url)}
-        disabled={!url}
-        className="shrink-0 text-parchment-dim/70 disabled:opacity-30"
-        title="Teilen"
-      >
-        <Share2 className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => url && downloadFile(url, safeFilename(r.title, "webm"))}
-        disabled={!url}
-        className="shrink-0 text-parchment-dim/70 disabled:opacity-30"
-        title="Herunterladen"
-      >
-        <Download className="h-4 w-4" />
-      </button>
-      {onRemove && (
-        <button onClick={onRemove} className="shrink-0 text-parchment-dim/70 active:text-red-400" title={removeTitle ?? "Entfernen"}>
-          <Trash2 className="h-4 w-4" />
+        <button onClick={() => url && share(r, url)} disabled={!url} className="disabled:opacity-30" title="Teilen">
+          <Share2 className="h-4 w-4" />
         </button>
-      )}
+        <button
+          onClick={() => url && downloadFile(url, safeFilename(r.title, "webm"))}
+          disabled={!url}
+          className="disabled:opacity-30"
+          title="Herunterladen"
+        >
+          <Download className="h-4 w-4" />
+        </button>
+        {onRemove && (
+          <button onClick={onRemove} className="active:text-red-400" title={removeTitle ?? "Entfernen"}>
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </li>
   );
 }
