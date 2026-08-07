@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Camera, X } from "lucide-react";
+import { Camera, GraduationCap, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { extractCardsFromImage, isGeminiConfigured, type ExtractedCard } from "../lib/gemini";
 import VocabCardList from "./VocabCardList";
+import Quiz from "./Quiz";
 
 export default function PhotoScan({ user }: { user: User }) {
   const [preview, setPreview] = useState<string | null>(null);
@@ -12,6 +13,7 @@ export default function PhotoScan({ user }: { user: User }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [quizActive, setQuizActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -65,45 +67,55 @@ export default function PhotoScan({ user }: { user: User }) {
     }
   }
 
-  if (!isGeminiConfigured) {
-    return (
-      <div className="rounded-2xl border border-dashed border-parchment/15 p-6 text-center text-sm text-parchment-dim">
-        Foto-Scan braucht einen kostenlosen Gemini API-Key. Trag{" "}
-        <code className="rounded bg-parchment/10 px-1.5 py-0.5">VITE_GEMINI_API_KEY</code> in deiner{" "}
-        <code className="rounded bg-parchment/10 px-1.5 py-0.5">.env</code> ein (Details in der README).
-      </div>
-    );
+  if (quizActive) {
+    return <Quiz user={user} onExit={() => setQuizActive(false)} />;
   }
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-parchment/10 bg-ink-2 p-5 text-center">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={onFile}
-          className="hidden"
-          id="photo-input"
-        />
-        {preview ? (
-          <img src={preview} alt="Vorschau" className="mx-auto mb-3 max-h-48 rounded-xl object-contain" />
-        ) : (
-          <Camera className="mx-auto mb-3 h-10 w-10 text-parchment-dim" strokeWidth={1.5} />
-        )}
-        <label
-          htmlFor="photo-input"
-          className="inline-block cursor-pointer rounded-xl bg-terracotta px-5 py-3 text-sm font-semibold text-ink shadow-lg shadow-black/30 active:scale-[0.98]"
-        >
-          Foto von Vokabeln / Grammatik machen
-        </label>
-        <p className="mt-2 text-xs text-parchment-dim">
-          KI liest Latein-Deutsch-Paare oder Deklinations-/Konjugationstabellen aus.
-        </p>
-        {scanning && <p className="mt-3 text-sm text-gold">Scanne Foto…</p>}
-        {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
-      </div>
+      <button
+        onClick={() => setQuizActive(true)}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-terracotta px-4 py-3 text-sm font-semibold text-ink shadow-lg shadow-black/30 active:scale-[0.98]"
+      >
+        <GraduationCap className="h-4 w-4" />
+        Quiz starten
+      </button>
+
+      {isGeminiConfigured ? (
+        <div className="rounded-2xl border border-parchment/10 bg-ink-2 p-5 text-center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={onFile}
+            className="hidden"
+            id="photo-input"
+          />
+          {preview ? (
+            <img src={preview} alt="Vorschau" className="mx-auto mb-3 max-h-48 rounded-xl object-contain" />
+          ) : (
+            <Camera className="mx-auto mb-3 h-10 w-10 text-parchment-dim" strokeWidth={1.5} />
+          )}
+          <label
+            htmlFor="photo-input"
+            className="inline-block cursor-pointer rounded-xl bg-terracotta px-5 py-3 text-sm font-semibold text-ink shadow-lg shadow-black/30 active:scale-[0.98]"
+          >
+            Foto von Vokabeln / Grammatik machen
+          </label>
+          <p className="mt-2 text-xs text-parchment-dim">
+            KI liest Latein-Deutsch-Paare oder Deklinations-/Konjugationstabellen aus.
+          </p>
+          {scanning && <p className="mt-3 text-sm text-gold">Scanne Foto…</p>}
+          {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-parchment/15 p-6 text-center text-sm text-parchment-dim">
+          Foto-Scan braucht einen kostenlosen Gemini API-Key. Trag{" "}
+          <code className="rounded bg-parchment/10 px-1.5 py-0.5">VITE_GEMINI_API_KEY</code> in deiner{" "}
+          <code className="rounded bg-parchment/10 px-1.5 py-0.5">.env</code> ein (Details in der README).
+        </div>
+      )}
 
       {drafts.length > 0 && (
         <div className="space-y-2">

@@ -56,8 +56,11 @@ npx vercel
 - **Herunterladen**: Jede Aufnahme lässt sich direkt als Datei aufs Gerät herunterladen.
 - **Foto-Scan**: Foto von Vokabelliste oder Grammatiktabelle → Gemini extrahiert automatisch Latein-Deutsch-Karten zum Prüfen und Speichern.
 - **Vorlesen**: Vokabelkarten per Sprachausgabe (kostenlose Web Speech API des Browsers) hören — Latein zuerst oder Deutsch zuerst, wählbar, mit 1s Pause dazwischen.
-- **Entdecken**: Aufnahmen, die du als "öffentlich" markierst, sind für alle Nutzer durchsuchbar/abspielbar. Vor der Freigabe prüft Gemini kurz automatisch, ob der Inhalt unangemessen ist (Quick-Check, kein Ersatz für echte Moderation).
-- **Account**: Profilbild hochladen, E-Mail einsehen, Abmelden.
+- **Entdecken**: Aufnahmen, die du als "öffentlich" markierst, sind für alle Nutzer durchsuchbar/abspielbar, mit Filter "Alle"/"Folge ich". Vor der Freigabe prüft Gemini kurz automatisch, ob der Inhalt unangemessen ist (Quick-Check, kein Ersatz für echte Moderation).
+- **Profile & Folgen**: Klick auf ein Profilbild öffnet eine eigene Profilseite mit Avatar, Namen und allen öffentlichen Aufnahmen dieser Person — inkl. Folgen/Entfolgen-Button.
+- **Speichern**: Aufnahmen anderer per Lesezeichen-Icon merken, unter "Gespeichert" in Anhören wiederfinden.
+- **Quiz-Modus**: Spaced-Repetition-Abfrage deiner Vokabelkarten (vereinfachtes SM-2) — fällige Karten werden abgefragt, Wiederholintervall passt sich automatisch an dein Ergebnis an.
+- **Account**: Profilbild + Name hochladen, E-Mail einsehen, Abmelden.
 
 ### Updates nachträglich einspielen
 
@@ -66,6 +69,11 @@ Falls du das Projekt vor einem dieser Features eingerichtet hast, einmalig im SQ
 - [`supabase/migration_2_social.sql`](supabase/migration_2_social.sql) — `is_public`-Spalte + Freigabe-Policies für "Entdecken".
 - [`supabase/migration_3_avatars.sql`](supabase/migration_3_avatars.sql) — legt den `avatars`-Bucket per SQL an (kein Dashboard-Klick nötig) + Policies für Profilbilder.
 - [`supabase/migration_4_profiles.sql`](supabase/migration_4_profiles.sql) — öffentliche `profiles`-Tabelle (Avatare anderer Nutzer sichtbar machen).
+- [`supabase/migration_5_name_saved.sql`](supabase/migration_5_name_saved.sql) — Account-Name + "Gespeichert"-Feature.
+- [`supabase/migration_6_spaced_repetition.sql`](supabase/migration_6_spaced_repetition.sql) — Spalten für den Quiz-Modus.
+- [`supabase/migration_7_follows.sql`](supabase/migration_7_follows.sql) — Follow-System.
+
+Alle Migrationen sind idempotent (können gefahrlos mehrfach ausgeführt werden).
 
 ## Login
 

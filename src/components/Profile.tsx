@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, User as UserIcon } from "lucide-react";
+import { ArrowLeft, User as UserIcon, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useSavedRecordings } from "../hooks/useSavedRecordings";
+import { useFollows } from "../hooks/useFollows";
 import type { Recording } from "../lib/types";
 import SoundItem from "./SoundItem";
 
@@ -22,6 +23,9 @@ export default function Profile({
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const { savedIds, toggleSave } = useSavedRecordings(currentUserId ?? "");
+  const { followingIds, toggleFollow } = useFollows(currentUserId ?? "");
+  const isOwnProfile = currentUserId === userId;
+  const isFollowing = followingIds.has(userId);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +84,17 @@ export default function Profile({
           <p className="text-sm text-parchment-dim">
             {loading ? "Lädt…" : `${recordings.length} öffentliche Aufnahme${recordings.length === 1 ? "" : "n"}`}
           </p>
+          {currentUserId && !isOwnProfile && (
+            <button
+              onClick={() => toggleFollow(userId)}
+              className={`mt-1 flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium ${
+                isFollowing ? "border border-parchment/15 text-parchment-dim" : "bg-terracotta text-ink font-semibold"
+              }`}
+            >
+              {isFollowing ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+              {isFollowing ? "Entfolgen" : "Folgen"}
+            </button>
+          )}
         </div>
       )}
 

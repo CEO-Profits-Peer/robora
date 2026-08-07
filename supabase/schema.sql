@@ -19,6 +19,11 @@ create table if not exists vocab_cards (
   german text not null,
   note text,
   source text not null default 'manual',
+  ease_factor numeric not null default 2.5,
+  interval_days numeric not null default 0,
+  repetitions integer not null default 0,
+  due_at timestamptz not null default now(),
+  last_reviewed_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -36,10 +41,18 @@ create table if not exists saved_recordings (
   primary key (user_id, recording_id)
 );
 
+create table if not exists follows (
+  follower_id uuid not null references auth.users(id) on delete cascade,
+  followed_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (follower_id, followed_id)
+);
+
 alter table recordings enable row level security;
 alter table vocab_cards enable row level security;
 alter table profiles enable row level security;
 alter table saved_recordings enable row level security;
+alter table follows enable row level security;
 
 create policy "Users manage own recordings" on recordings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -57,6 +70,12 @@ create policy "Users manage own profile" on profiles
 
 create policy "Users manage own saved recordings" on saved_recordings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "Users manage own follows" on follows
+  for all using (auth.uid() = follower_id) with check (auth.uid() = follower_id);
+
+create policy "Follow counts are readable by anyone" on follows
+  for select using (true);
 
 -- Storage-Buckets anlegen (kein Dashboard-Klick nötig):
 
