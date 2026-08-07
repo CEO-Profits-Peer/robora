@@ -46,8 +46,15 @@ create policy "Profiles are readable by anyone" on profiles for select using (tr
 create policy "Users manage own profile" on profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
 
--- Storage: privaten Bucket "recordings" anlegen (Dashboard -> Storage -> New bucket, "Public" AUS)
--- Danach diese Policies im SQL Editor ausführen:
+-- Storage-Buckets anlegen (kein Dashboard-Klick nötig):
+
+insert into storage.buckets (id, name, public)
+values ('recordings', 'recordings', false)
+on conflict (id) do nothing;
+
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do update set public = true;
 
 create policy "Users upload own audio"
   on storage.objects for insert
@@ -70,9 +77,6 @@ create policy "Public recording audio is readable by anyone"
       where r.audio_path = storage.objects.name and r.is_public = true
     )
   );
-
--- Storage: zweiten Bucket "avatars" anlegen (Dashboard -> Storage -> New bucket, diesmal "Public" AN)
--- Danach:
 
 create policy "Users upload own avatar"
   on storage.objects for insert

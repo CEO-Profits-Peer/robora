@@ -1,6 +1,9 @@
--- Profilbilder: im Supabase Dashboard zuerst Storage -> New bucket -> Name "avatars",
--- diesmal "Public" EINSCHALTEN (damit Profilbilder ohne Signed-URL-Umweg geladen werden können).
--- Danach diese Policies im SQL Editor ausführen:
+-- Profilbilder: Bucket + Policies. Alles in einem Rutsch im SQL Editor ausführbar
+-- (kein manuelles Bucket-Anlegen im Dashboard nötig).
+
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do update set public = true;
 
 create policy "Users upload own avatar"
   on storage.objects for insert

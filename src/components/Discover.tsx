@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import type { Recording } from "../lib/types";
 import DiscoverItem from "./DiscoverItem";
+import Profile from "./Profile";
 
 export default function Discover() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
   const [query, setQuery] = useState("");
-  const [profileFilter, setProfileFilter] = useState<string | null>(null);
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,7 +60,9 @@ export default function Discover() {
     };
   }, [query]);
 
-  const visible = profileFilter ? recordings.filter((r) => r.user_id === profileFilter) : recordings;
+  if (viewingUserId) {
+    return <Profile userId={viewingUserId} onBack={() => setViewingUserId(null)} />;
+  }
 
   return (
     <div className="space-y-4">
@@ -72,32 +74,23 @@ export default function Discover() {
         className="w-full rounded-xl border border-parchment/10 bg-ink-2 px-4 py-3 text-sm text-parchment outline-none placeholder:text-parchment-dim/50 focus:border-terracotta"
       />
 
-      {profileFilter && (
-        <div className="flex items-center justify-between rounded-xl border border-terracotta/30 bg-terracotta/10 px-3 py-2 text-sm text-parchment">
-          Zeige nur Aufnahmen dieser Person
-          <button onClick={() => setProfileFilter(null)} className="flex items-center gap-1 text-xs text-gold">
-            <X className="h-3.5 w-3.5" /> Zurücksetzen
-          </button>
-        </div>
-      )}
-
       {loading && <p className="py-8 text-center text-sm text-parchment-dim">Lädt…</p>}
 
-      {!loading && visible.length === 0 && (
+      {!loading && recordings.length === 0 && (
         <div className="rounded-2xl border border-dashed border-parchment/15 p-8 text-center text-sm text-parchment-dim">
-          {query || profileFilter ? "Keine öffentlichen Aufnahmen gefunden." : "Noch keine öffentlichen Aufnahmen von der Community."}
+          {query ? "Keine öffentlichen Aufnahmen gefunden." : "Noch keine öffentlichen Aufnahmen von der Community."}
         </div>
       )}
 
       <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-        {visible.map((r) => (
+        {recordings.map((r) => (
           <DiscoverItem
             key={r.id}
             recording={r}
             url={urls[r.id]}
             avatarUrl={avatars[r.user_id]}
-            queue={visible}
-            onSelectProfile={setProfileFilter}
+            queue={recordings}
+            onSelectProfile={setViewingUserId}
           />
         ))}
       </ul>

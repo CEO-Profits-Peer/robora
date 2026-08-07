@@ -64,7 +64,8 @@ npx vercel
 Falls du das Projekt vor einem dieser Features eingerichtet hast, einmalig im SQL Editor nachholen (bei Neuinstallation bereits in `schema.sql` enthalten):
 
 - [`supabase/migration_2_social.sql`](supabase/migration_2_social.sql) — `is_public`-Spalte + Freigabe-Policies für "Entdecken".
-- [`supabase/migration_3_avatars.sql`](supabase/migration_3_avatars.sql) — Policies für Profilbilder. Vorher zusätzlich einen **öffentlichen** Storage-Bucket `avatars` anlegen (Storage → New bucket → "Public" AN).
+- [`supabase/migration_3_avatars.sql`](supabase/migration_3_avatars.sql) — legt den `avatars`-Bucket per SQL an (kein Dashboard-Klick nötig) + Policies für Profilbilder.
+- [`supabase/migration_4_profiles.sql`](supabase/migration_4_profiles.sql) — öffentliche `profiles`-Tabelle (Avatare anderer Nutzer sichtbar machen).
 
 ## Login
 

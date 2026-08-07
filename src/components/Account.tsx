@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import Profile from "./Profile";
 
 export default function Account({ user }: { user: User }) {
   const [uploading, setUploading] = useState(false);
@@ -82,6 +83,11 @@ export default function Account({ user }: { user: User }) {
         <LogOut className="h-4 w-4" />
         Abmelden
       </button>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-parchment/80">Deine öffentlichen Aufnahmen</p>
+        <Profile userId={user.id} showHeader={false} />
+      </div>
     </div>
   );
 }
