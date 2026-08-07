@@ -1,18 +1,8 @@
 import { useEffect, useState } from "react";
-import { Download, ListPlus, Pause, Play, User as UserIcon, X } from "lucide-react";
+import { X } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { downloadFile, safeFilename } from "../lib/download";
 import type { Recording } from "../lib/types";
-import { usePlayer, type Track } from "../context/PlayerContext";
-
-function formatTime(sec: number) {
-  if (!sec || Number.isNaN(sec)) return "0:00";
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${m}:${s}`;
-}
+import DiscoverItem from "./DiscoverItem";
 
 export default function Discover() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -21,7 +11,6 @@ export default function Discover() {
   const [query, setQuery] = useState("");
   const [profileFilter, setProfileFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const player = usePlayer();
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +60,6 @@ export default function Discover() {
     };
   }, [query]);
 
-  const toTrack = (r: Recording): Track => ({ id: r.id, title: r.title, tag: r.tag, url: urls[r.id] });
   const visible = profileFilter ? recordings.filter((r) => r.user_id === profileFilter) : recordings;
 
   return (
@@ -102,65 +90,16 @@ export default function Discover() {
       )}
 
       <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-        {visible.map((r) => {
-          const isCurrent = player.current?.id === r.id;
-          const avatarUrl = avatars[r.user_id];
-          return (
-            <li
-              key={r.id}
-              className={`flex items-center gap-3 rounded-xl border p-3 transition ${
-                isCurrent ? "border-terracotta/50 bg-terracotta/10" : "border-parchment/10 bg-ink-2"
-              }`}
-            >
-              <button
-                onClick={() => setProfileFilter(r.user_id)}
-                title="Alle Aufnahmen dieser Person ansehen"
-                className="shrink-0"
-              >
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
-                ) : (
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-3">
-                    <UserIcon className="h-4 w-4 text-parchment-dim" />
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => player.play(toTrack(r), visible.map(toTrack))}
-                disabled={!urls[r.id]}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink-3 disabled:opacity-30"
-              >
-                {isCurrent && player.isPlaying ? (
-                  <Pause className="h-4 w-4 text-parchment" fill="currentColor" />
-                ) : (
-                  <Play className="ml-0.5 h-4 w-4 text-parchment" fill="currentColor" />
-                )}
-              </button>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-parchment">{r.title}</p>
-                <p className="text-xs text-parchment-dim">
-                  {r.tag} · {formatTime(r.duration ?? 0)}
-                </p>
-              </div>
-              <button
-                onClick={() => urls[r.id] && player.addToQueue(toTrack(r))}
-                disabled={!urls[r.id]}
-                className="shrink-0 text-parchment-dim/70 disabled:opacity-30"
-                title="Zur Warteschlange hinzufügen"
-              >
-                <ListPlus className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => urls[r.id] && downloadFile(urls[r.id], safeFilename(r.title, "webm"))}
-                disabled={!urls[r.id]}
-                className="shrink-0 text-parchment-dim/70 disabled:opacity-30"
-                title="Herunterladen"
-              >
-                <Download className="h-4 w-4" />
-              </button>
-            </li>
-          );
-        })}
+        {visible.map((r) => (
+          <DiscoverItem
+            key={r.id}
+            recording={r}
+            url={urls[r.id]}
+            avatarUrl={avatars[r.user_id]}
+            queue={visible}
+            onSelectProfile={setProfileFilter}
+          />
+        ))}
       </ul>
     </div>
   );

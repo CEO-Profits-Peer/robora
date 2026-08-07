@@ -1,12 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Camera, Trash2, Volume2, X } from "lucide-react";
+import { Camera, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { extractCardsFromImage, isGeminiConfigured, type ExtractedCard } from "../lib/gemini";
-import { isTtsSupported, readCard, type ReadOrder } from "../lib/tts";
-import type { VocabCard } from "../lib/types";
-
-const ORDER_KEY = "latein-audio:read-order";
+import VocabCardList from "./VocabCardList";
 
 export default function PhotoScan({ user }: { user: User }) {
   const [preview, setPreview] = useState<string | null>(null);
@@ -14,30 +11,8 @@ export default function PhotoScan({ user }: { user: User }) {
   const [drafts, setDrafts] = useState<ExtractedCard[]>([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [cards, setCards] = useState<VocabCard[]>([]);
-  const [order, setOrder] = useState<ReadOrder>(
-    () => (localStorage.getItem(ORDER_KEY) as ReadOrder) || "latin-first"
-  );
+  const [refreshKey, setRefreshKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  function changeOrder(o: ReadOrder) {
-    setOrder(o);
-    localStorage.setItem(ORDER_KEY, o);
-  }
-
-  useEffect(() => {
-    loadCards();
-  }, []);
-
-  async function loadCards() {
-    const { data } = await supabase
-      .from("vocab_cards")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (data) setCards(data as VocabCard[]);
-  }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -82,17 +57,12 @@ export default function PhotoScan({ user }: { user: User }) {
       setDrafts([]);
       setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      await loadCards();
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Speichern fehlgeschlagen.");
     } finally {
       setSaving(false);
     }
-  }
-
-  async function removeCard(id: string) {
-    await supabase.from("vocab_cards").delete().eq("id", id);
-    setCards((prev) => prev.filter((c) => c.id !== id));
   }
 
   if (!isGeminiConfigured) {
@@ -167,57 +137,7 @@ export default function PhotoScan({ user }: { user: User }) {
         </div>
       )}
 
-      {cards.length > 0 && (
-        <div>
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-medium text-parchment/80">Gespeicherte Vokabelkarten</p>
-            {isTtsSupported && (
-              <div className="flex rounded-lg bg-ink-2 p-0.5 text-xs">
-                <button
-                  onClick={() => changeOrder("latin-first")}
-                  className={`rounded-md px-2 py-1 font-medium transition ${
-                    order === "latin-first" ? "bg-terracotta text-ink" : "text-parchment-dim"
-                  }`}
-                >
-                  Latein zuerst
-                </button>
-                <button
-                  onClick={() => changeOrder("german-first")}
-                  className={`rounded-md px-2 py-1 font-medium transition ${
-                    order === "german-first" ? "bg-terracotta text-ink" : "text-parchment-dim"
-                  }`}
-                >
-                  Deutsch zuerst
-                </button>
-              </div>
-            )}
-          </div>
-          <ul className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-3">
-            {cards.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between gap-2 rounded-xl border border-parchment/10 bg-ink-2 px-3 py-2 text-sm"
-              >
-                <span className="min-w-0 truncate">
-                  <span className="font-medium text-parchment">{c.latin}</span>
-                  <span className="text-parchment-dim"> — {c.german}</span>
-                  {c.note && <span className="block truncate text-xs text-parchment-dim/70">{c.note}</span>}
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  {isTtsSupported && (
-                    <button onClick={() => readCard(c, order)} className="text-parchment-dim/80 active:text-gold">
-                      <Volume2 className="h-4 w-4" />
-                    </button>
-                  )}
-                  <button onClick={() => removeCard(c.id)} className="text-parchment-dim/60 active:text-red-400">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <VocabCardList user={user} refreshKey={refreshKey} />
     </div>
   );
 }
