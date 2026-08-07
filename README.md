@@ -60,6 +60,8 @@ npx vercel
 - **Profile & Folgen**: Klick auf ein Profilbild öffnet eine eigene Profilseite mit Avatar, Namen und allen öffentlichen Aufnahmen dieser Person — inkl. Folgen/Entfolgen-Button.
 - **Speichern**: Aufnahmen anderer per Lesezeichen-Icon merken, unter "Gespeichert" in Anhören wiederfinden.
 - **Quiz-Modus**: Spaced-Repetition-Abfrage deiner Vokabelkarten (vereinfachtes SM-2) — fällige Karten werden abgefragt, Wiederholintervall passt sich automatisch an dein Ergebnis an.
+- **Likes**: Herz-Icon auf öffentlichen Aufnahmen, mit sichtbarem Zähler.
+- **Gruppen**: Lerngruppe per Einladungscode erstellen/beitreten, Aufnahmen & Vokabelkarten gezielt mit der Gruppe teilen (kein offener Chat — bewusst weggelassen, siehe unten).
 - **Account**: Profilbild + Name hochladen, E-Mail einsehen, Abmelden.
 
 ### Updates nachträglich einspielen
@@ -72,8 +74,14 @@ Falls du das Projekt vor einem dieser Features eingerichtet hast, einmalig im SQ
 - [`supabase/migration_5_name_saved.sql`](supabase/migration_5_name_saved.sql) — Account-Name + "Gespeichert"-Feature.
 - [`supabase/migration_6_spaced_repetition.sql`](supabase/migration_6_spaced_repetition.sql) — Spalten für den Quiz-Modus.
 - [`supabase/migration_7_follows.sql`](supabase/migration_7_follows.sql) — Follow-System.
+- [`supabase/migration_8_likes.sql`](supabase/migration_8_likes.sql) — Likes.
+- [`supabase/migration_9_groups.sql`](supabase/migration_9_groups.sql) — Gruppen zum Teilen von Aufnahmen & Vokabelkarten.
 
 Alle Migrationen sind idempotent (können gefahrlos mehrfach ausgeführt werden).
+
+### Hinweis zu Gruppen
+
+Gruppen teilen aktuell nur Inhalte (Aufnahmen, Vokabelkarten) — kein Freitext-Chat/Messaging zwischen Mitgliedern. Live-Chat wäre ein deutlich größeres eigenes Feature (Echtzeit-Infrastruktur, Nachrichtenmoderation, Missbrauchspotential bei offenem Messaging) und wurde bewusst nicht mitgebaut.
 
 ## Login
 

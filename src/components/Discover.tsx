@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { useSavedRecordings } from "../hooks/useSavedRecordings";
 import { useFollows } from "../hooks/useFollows";
+import { useLikes } from "../hooks/useLikes";
 import type { Recording } from "../lib/types";
 import SoundItem from "./SoundItem";
 import Profile from "./Profile";
@@ -17,6 +18,10 @@ export default function Discover({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const { savedIds, toggleSave } = useSavedRecordings(user.id);
   const { followingIds } = useFollows(user.id);
+  const { likedIds, counts: likeCounts, toggleLike } = useLikes(
+    user.id,
+    recordings.map((r) => r.id)
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -124,6 +129,9 @@ export default function Discover({ user }: { user: User }) {
             queue={visible}
             saved={savedIds.has(r.id)}
             onToggleSave={() => toggleSave(r.id)}
+            liked={likedIds.has(r.id)}
+            likeCount={likeCounts[r.id]}
+            onToggleLike={() => toggleLike(r.id)}
           />
         ))}
       </ul>

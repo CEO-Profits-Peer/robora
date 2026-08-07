@@ -29,3 +29,11 @@ export type VocabCard = {
   last_reviewed_at: string | null;
   created_at: string;
 };
+
+export type Group = {
+  id: string;
+  name: string;
+  invite_code: string;
+  created_by: string;
+  created_at: string;
+};

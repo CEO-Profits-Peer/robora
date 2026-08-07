@@ -48,11 +48,54 @@ create table if not exists follows (
   primary key (follower_id, followed_id)
 );
 
+create table if not exists likes (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  recording_id uuid not null references recordings(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, recording_id)
+);
+
+create table if not exists groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  invite_code text not null unique default substr(md5(random()::text), 1, 8),
+  created_by uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists group_members (
+  group_id uuid not null references groups(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  primary key (group_id, user_id)
+);
+
+create table if not exists group_shared_recordings (
+  group_id uuid not null references groups(id) on delete cascade,
+  recording_id uuid not null references recordings(id) on delete cascade,
+  shared_by uuid not null references auth.users(id) on delete cascade,
+  shared_at timestamptz not null default now(),
+  primary key (group_id, recording_id)
+);
+
+create table if not exists group_shared_cards (
+  group_id uuid not null references groups(id) on delete cascade,
+  vocab_card_id uuid not null references vocab_cards(id) on delete cascade,
+  shared_by uuid not null references auth.users(id) on delete cascade,
+  shared_at timestamptz not null default now(),
+  primary key (group_id, vocab_card_id)
+);
+
 alter table recordings enable row level security;
 alter table vocab_cards enable row level security;
 alter table profiles enable row level security;
 alter table saved_recordings enable row level security;
 alter table follows enable row level security;
+alter table likes enable row level security;
+alter table groups enable row level security;
+alter table group_members enable row level security;
+alter table group_shared_recordings enable row level security;
+alter table group_shared_cards enable row level security;
 
 create policy "Users manage own recordings" on recordings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -76,6 +119,86 @@ create policy "Users manage own follows" on follows
 
 create policy "Follow counts are readable by anyone" on follows
   for select using (true);
+
+create policy "Users manage own likes" on likes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "Like counts are readable by anyone" on likes
+  for select using (true);
+
+-- Gruppen: jeder eingeloggte Nutzer kann Gruppen sehen (z.B. um per Einladungscode
+-- beizutreten), aber nur Mitglieder sehen die Mitgliederliste und geteilten Inhalte.
+
+create policy "Authenticated users can read groups" on groups
+  for select using (auth.role() = 'authenticated');
+
+create policy "Users create groups" on groups
+  for insert with check (auth.uid() = created_by);
+
+create policy "Creators update their groups" on groups
+  for update using (auth.uid() = created_by);
+
+create policy "Creators delete their groups" on groups
+  for delete using (auth.uid() = created_by);
+
+create policy "Members see membership" on group_members
+  for select using (
+    exists (select 1 from group_members gm where gm.group_id = group_members.group_id and gm.user_id = auth.uid())
+  );
+
+create policy "Users join groups" on group_members
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users leave groups" on group_members
+  for delete using (auth.uid() = user_id);
+
+create policy "Members read shared recordings" on group_shared_recordings
+  for select using (
+    exists (select 1 from group_members gm where gm.group_id = group_shared_recordings.group_id and gm.user_id = auth.uid())
+  );
+
+create policy "Members share recordings to their groups" on group_shared_recordings
+  for insert with check (
+    auth.uid() = shared_by
+    and exists (select 1 from group_members gm where gm.group_id = group_shared_recordings.group_id and gm.user_id = auth.uid())
+  );
+
+create policy "Sharers remove their shared recordings" on group_shared_recordings
+  for delete using (auth.uid() = shared_by);
+
+create policy "Members read shared cards" on group_shared_cards
+  for select using (
+    exists (select 1 from group_members gm where gm.group_id = group_shared_cards.group_id and gm.user_id = auth.uid())
+  );
+
+create policy "Members share cards to their groups" on group_shared_cards
+  for insert with check (
+    auth.uid() = shared_by
+    and exists (select 1 from group_members gm where gm.group_id = group_shared_cards.group_id and gm.user_id = auth.uid())
+  );
+
+create policy "Sharers remove their shared cards" on group_shared_cards
+  for delete using (auth.uid() = shared_by);
+
+-- Damit geteilte (nicht öffentliche) Aufnahmen/Karten für Gruppenmitglieder überhaupt lesbar sind:
+
+create policy "Group members can read shared recordings" on recordings
+  for select using (
+    exists (
+      select 1 from group_shared_recordings gsr
+      join group_members gm on gm.group_id = gsr.group_id
+      where gsr.recording_id = recordings.id and gm.user_id = auth.uid()
+    )
+  );
+
+create policy "Group members can read shared cards" on vocab_cards
+  for select using (
+    exists (
+      select 1 from group_shared_cards gsc
+      join group_members gm on gm.group_id = gsc.group_id
+      where gsc.vocab_card_id = vocab_cards.id and gm.user_id = auth.uid()
+    )
+  );
 
 -- Storage-Buckets anlegen (kein Dashboard-Klick nötig):
 
@@ -116,3 +239,15 @@ create policy "Users upload own avatar"
 create policy "Users update own avatar"
   on storage.objects for update
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "Group shared recording audio is readable by members"
+  on storage.objects for select
+  using (
+    bucket_id = 'recordings'
+    and exists (
+      select 1 from recordings r
+      join group_shared_recordings gsr on gsr.recording_id = r.id
+      join group_members gm on gm.group_id = gsr.group_id
+      where r.audio_path = storage.objects.name and gm.user_id = auth.uid()
+    )
+  );

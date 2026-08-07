@@ -3,6 +3,7 @@ import { ArrowLeft, User as UserIcon, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useSavedRecordings } from "../hooks/useSavedRecordings";
 import { useFollows } from "../hooks/useFollows";
+import { useLikes } from "../hooks/useLikes";
 import type { Recording } from "../lib/types";
 import SoundItem from "./SoundItem";
 
@@ -24,6 +25,10 @@ export default function Profile({
   const [loading, setLoading] = useState(true);
   const { savedIds, toggleSave } = useSavedRecordings(currentUserId ?? "");
   const { followingIds, toggleFollow } = useFollows(currentUserId ?? "");
+  const { likedIds, counts: likeCounts, toggleLike } = useLikes(
+    currentUserId ?? "",
+    recordings.map((r) => r.id)
+  );
   const isOwnProfile = currentUserId === userId;
   const isFollowing = followingIds.has(userId);
 
@@ -113,6 +118,9 @@ export default function Profile({
             queue={recordings}
             saved={currentUserId ? savedIds.has(r.id) : undefined}
             onToggleSave={currentUserId ? () => toggleSave(r.id) : undefined}
+            liked={currentUserId ? likedIds.has(r.id) : undefined}
+            likeCount={likeCounts[r.id]}
+            onToggleLike={currentUserId ? () => toggleLike(r.id) : undefined}
           />
         ))}
       </ul>

@@ -1,4 +1,4 @@
-import { Bookmark, Download, ListPlus, Pause, Play, Share2, User as UserIcon } from "lucide-react";
+import { Bookmark, Download, Heart, ListPlus, Pause, Play, Share2, Trash2, User as UserIcon } from "lucide-react";
 import { downloadFile, safeFilename } from "../lib/download";
 import { formatTime } from "../lib/format";
 import type { Recording } from "../lib/types";
@@ -25,6 +25,11 @@ export default function SoundItem({
   onAvatarClick,
   saved,
   onToggleSave,
+  liked,
+  likeCount,
+  onToggleLike,
+  onRemove,
+  removeTitle,
 }: {
   recording: Recording;
   url: string | undefined;
@@ -33,6 +38,11 @@ export default function SoundItem({
   onAvatarClick?: () => void;
   saved?: boolean;
   onToggleSave?: () => void;
+  liked?: boolean;
+  likeCount?: number;
+  onToggleLike?: () => void;
+  onRemove?: () => void;
+  removeTitle?: string;
 }) {
   const player = usePlayer();
   const isCurrent = player.current?.id === r.id;
@@ -40,7 +50,7 @@ export default function SoundItem({
 
   return (
     <li
-      className={`flex items-center gap-3 rounded-xl border p-3 transition ${
+      className={`flex items-center gap-2.5 rounded-xl border p-3 transition ${
         isCurrent ? "border-terracotta/50 bg-terracotta/10" : "border-parchment/10 bg-ink-2"
       }`}
     >
@@ -72,6 +82,12 @@ export default function SoundItem({
           {r.tag} · {formatTime(r.duration ?? 0)}
         </p>
       </div>
+      {onToggleLike && (
+        <button onClick={onToggleLike} className={`flex shrink-0 items-center gap-1 ${liked ? "text-red-400" : "text-parchment-dim/70"}`}>
+          <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
+          {!!likeCount && <span className="text-[10px]">{likeCount}</span>}
+        </button>
+      )}
       {onToggleSave && (
         <button
           onClick={onToggleSave}
@@ -105,6 +121,11 @@ export default function SoundItem({
       >
         <Download className="h-4 w-4" />
       </button>
+      {onRemove && (
+        <button onClick={onRemove} className="shrink-0 text-parchment-dim/70 active:text-red-400" title={removeTitle ?? "Entfernen"}>
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </li>
   );
 }

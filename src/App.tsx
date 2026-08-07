@@ -1,23 +1,25 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Mic, Library as LibraryIcon, Camera, Globe2, UserCircle, type LucideIcon } from "lucide-react";
+import { Mic, Library as LibraryIcon, Camera, Globe2, Users, UserCircle, type LucideIcon } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./lib/supabase";
 import Auth from "./components/Auth";
 import Recorder from "./components/Recorder";
 import Library from "./components/Library";
 import PhotoScan from "./components/PhotoScan";
 import Discover from "./components/Discover";
+import Groups from "./components/Groups";
 import Account from "./components/Account";
 import MiniPlayer from "./components/MiniPlayer";
 import { PlayerProvider } from "./context/PlayerContext";
 
-type Tab = "record" | "library" | "scan" | "discover" | "account";
+type Tab = "record" | "library" | "scan" | "discover" | "groups" | "account";
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "record", label: "Aufnehmen", icon: Mic },
   { id: "library", label: "Anhören", icon: LibraryIcon },
   { id: "scan", label: "Foto-Scan", icon: Camera },
   { id: "discover", label: "Entdecken", icon: Globe2 },
+  { id: "groups", label: "Gruppen", icon: Users },
   { id: "account", label: "Account", icon: UserCircle },
 ];
 
@@ -26,6 +28,7 @@ const TAB_TITLES: Record<Tab, string> = {
   library: "Anhören",
   scan: "Foto-Scan",
   discover: "Entdecken",
+  groups: "Gruppen",
   account: "Account",
 };
 
@@ -34,6 +37,7 @@ const TAB_DESCRIPTIONS: Record<Tab, string> = {
   library: "Deine gespeicherten Aufnahmen, jederzeit abspielbar.",
   scan: "Foto von Vokabeln oder Grammatik → automatische Karten.",
   discover: "Öffentliche Aufnahmen anderer Lernender durchsuchen.",
+  groups: "Aufnahmen & Vokabeln mit deiner Lerngruppe teilen.",
   account: "Profil und Einstellungen.",
 };
 
@@ -100,6 +104,7 @@ function AppShell({ user }: { user: User }) {
             {tab === "library" && <Library user={user} refreshKey={refreshKey} />}
             {tab === "scan" && <PhotoScan user={user} />}
             {tab === "discover" && <Discover user={user} />}
+            {tab === "groups" && <Groups user={user} />}
             {tab === "account" && <Account user={user} />}
           </main>
         </div>
