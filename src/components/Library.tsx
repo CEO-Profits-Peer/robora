@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { checkAudioSafety, isGeminiConfigured } from "../lib/gemini";
+import { useSavedRecordings } from "../hooks/useSavedRecordings";
 import type { Recording } from "../lib/types";
 import RecordingItem from "./RecordingItem";
+import SoundItem from "./SoundItem";
 
-const FILTERS = ["Alle", "Vokabeln", "Grammatik", "Sonstiges"] as const;
+const FILTERS = ["Alle", "Vokabeln", "Grammatik", "Sonstiges", "Gespeichert"] as const;
 
 export default function Library({ user, refreshKey }: { user: User; refreshKey: number }) {
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -16,6 +18,11 @@ export default function Library({ user, refreshKey }: { user: User; refreshKey: 
   const [checkingId, setCheckingId] = useState<string | null>(null);
   const [flagged, setFlagged] = useState<{ id: string; reason: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+
+  const { savedIds, toggleSave } = useSavedRecordings(user.id);
+  const [savedRecordings, setSavedRecordings] = useState<Recording[]>([]);
+  const [savedUrls, setSavedUrls] = useState<Record<string, string>>({});
+  const [savedLoading, setSavedLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +59,42 @@ export default function Library({ user, refreshKey }: { user: User; refreshKey: 
       cancelled = true;
     };
   }, [user.id, refreshKey, reloadKey]);
+
+  useEffect(() => {
+    if (filter !== "Gespeichert") return;
+    let cancelled = false;
+    async function loadSaved() {
+      setSavedLoading(true);
+      const { data } = await supabase
+        .from("saved_recordings")
+        .select("recording_id, recordings(*)")
+        .eq("user_id", user.id)
+        .order("saved_at", { ascending: false });
+
+      if (cancelled) return;
+      const list = ((data ?? []) as unknown as { recordings: Recording | null }[])
+        .map((row) => row.recordings)
+        .filter((r): r is Recording => Boolean(r));
+      setSavedRecordings(list);
+
+      const entries = await Promise.all(
+        list.map(async (r) => {
+          const { data: signed } = await supabase.storage
+            .from("recordings")
+            .createSignedUrl(r.audio_path, 60 * 60 * 6);
+          return [r.id, signed?.signedUrl ?? ""] as const;
+        })
+      );
+      if (!cancelled) {
+        setSavedUrls(Object.fromEntries(entries));
+        setSavedLoading(false);
+      }
+    }
+    loadSaved();
+    return () => {
+      cancelled = true;
+    };
+  }, [filter, user.id, savedIds.size]);
 
   async function remove(r: Recording) {
     if (!confirm(`"${r.title}" wirklich löschen?`)) return;
@@ -100,34 +143,57 @@ export default function Library({ user, refreshKey }: { user: User; refreshKey: 
         ))}
       </div>
 
-      {loading && <p className="py-8 text-center text-sm text-parchment-dim">Lädt…</p>}
-
-      {!loading && filtered.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-parchment/15 p-8 text-center text-sm text-parchment-dim">
-          Noch keine Aufnahmen{filter !== "Alle" ? ` in "${filter}"` : ""}. Leg im Tab "Aufnehmen" los.
-        </div>
+      {filter === "Gespeichert" ? (
+        <>
+          {savedLoading && <p className="py-8 text-center text-sm text-parchment-dim">Lädt…</p>}
+          {!savedLoading && savedRecordings.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-parchment/15 p-8 text-center text-sm text-parchment-dim">
+              Noch nichts gespeichert. Im Tab "Entdecken" auf das Lesezeichen-Symbol tippen.
+            </div>
+          )}
+          <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {savedRecordings.map((r) => (
+              <SoundItem
+                key={r.id}
+                recording={r}
+                url={savedUrls[r.id]}
+                queue={savedRecordings}
+                saved
+                onToggleSave={() => toggleSave(r.id)}
+              />
+            ))}
+          </ul>
+        </>
+      ) : (
+        <>
+          {loading && <p className="py-8 text-center text-sm text-parchment-dim">Lädt…</p>}
+          {!loading && filtered.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-parchment/15 p-8 text-center text-sm text-parchment-dim">
+              Noch keine Aufnahmen{filter !== "Alle" ? ` in "${filter}"` : ""}. Leg im Tab "Aufnehmen" los.
+            </div>
+          )}
+          <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((r) => (
+              <RecordingItem
+                key={r.id}
+                recording={r}
+                url={urls[r.id]}
+                queue={filtered}
+                checking={checkingId === r.id}
+                flaggedReason={flagged?.id === r.id ? flagged.reason : undefined}
+                trimming={trimmingId === r.id}
+                onTogglePublic={togglePublic}
+                onToggleTrim={setTrimmingId}
+                onTrimSaved={() => {
+                  setTrimmingId(null);
+                  setReloadKey((k) => k + 1);
+                }}
+                onRemove={remove}
+              />
+            ))}
+          </ul>
+        </>
       )}
-
-      <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((r) => (
-          <RecordingItem
-            key={r.id}
-            recording={r}
-            url={urls[r.id]}
-            queue={filtered}
-            checking={checkingId === r.id}
-            flaggedReason={flagged?.id === r.id ? flagged.reason : undefined}
-            trimming={trimmingId === r.id}
-            onTogglePublic={togglePublic}
-            onToggleTrim={setTrimmingId}
-            onTrimSaved={() => {
-              setTrimmingId(null);
-              setReloadKey((k) => k + 1);
-            }}
-            onRemove={remove}
-          />
-        ))}
-      </ul>
     </div>
   );
 }

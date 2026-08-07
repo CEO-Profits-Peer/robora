@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { Check, LogOut, Pencil, User as UserIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import Profile from "./Profile";
 
@@ -8,6 +8,11 @@ export default function Account({ user }: { user: User }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user.user_metadata?.avatar_url);
+
+  const [editingName, setEditingName] = useState(false);
+  const [name, setName] = useState<string>(user.user_metadata?.display_name ?? "");
+  const [savingName, setSavingName] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -47,6 +52,22 @@ export default function Account({ user }: { user: User }) {
     }
   }
 
+  async function saveName() {
+    setSavingName(true);
+    setError("");
+    try {
+      const trimmed = name.trim();
+      const { error: userErr } = await supabase.auth.updateUser({ data: { display_name: trimmed } });
+      if (userErr) throw userErr;
+      await supabase.from("profiles").upsert({ id: user.id, display_name: trimmed, updated_at: new Date().toISOString() });
+      setEditingName(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Name konnte nicht gespeichert werden.");
+    } finally {
+      setSavingName(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-parchment/10 bg-ink-2 p-8 text-center">
@@ -71,9 +92,35 @@ export default function Account({ user }: { user: User }) {
         >
           {uploading ? "Lädt hoch…" : avatarUrl ? "Profilbild ändern" : "Profilbild hochladen"}
         </label>
+
+        {editingName ? (
+          <div className="flex w-full items-center gap-2">
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Dein Name"
+              maxLength={40}
+              className="w-full rounded-lg border border-parchment/10 bg-ink-3 px-3 py-2 text-sm text-parchment outline-none focus:border-terracotta"
+            />
+            <button
+              onClick={saveName}
+              disabled={savingName}
+              className="shrink-0 rounded-lg bg-terracotta p-2 text-ink disabled:opacity-50"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setEditingName(true)} className="flex items-center gap-1.5 text-sm text-parchment">
+            {name || "Namen hinzufügen"}
+            <Pencil className="h-3.5 w-3.5 text-parchment-dim" />
+          </button>
+        )}
+
         {error && <p className="text-xs text-red-400">{error}</p>}
 
-        <p className="text-sm text-parchment">{user.email}</p>
+        <p className="text-sm text-parchment-dim">{user.email}</p>
       </div>
 
       <button
@@ -86,7 +133,7 @@ export default function Account({ user }: { user: User }) {
 
       <div>
         <p className="mb-2 text-sm font-medium text-parchment/80">Deine öffentlichen Aufnahmen</p>
-        <Profile userId={user.id} showHeader={false} />
+        <Profile userId={user.id} currentUserId={user.id} showHeader={false} />
       </div>
     </div>
   );

@@ -9,6 +9,12 @@ export type Recording = {
   created_at: string;
 };
 
+export type Profile = {
+  id: string;
+  avatar_url: string | null;
+  display_name: string | null;
+};
+
 export type VocabCard = {
   id: string;
   user_id: string;

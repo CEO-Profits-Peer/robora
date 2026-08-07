@@ -1,79 +1,34 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, ListPlus, Pause, Play, User as UserIcon } from "lucide-react";
+import { ArrowLeft, User as UserIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { downloadFile, safeFilename } from "../lib/download";
-import { formatTime } from "../lib/format";
+import { useSavedRecordings } from "../hooks/useSavedRecordings";
 import type { Recording } from "../lib/types";
-import { usePlayer, type Track } from "../context/PlayerContext";
-
-function ProfileRecording({ r, url, queue }: { r: Recording; url: string | undefined; queue: Recording[] }) {
-  const player = usePlayer();
-  const isCurrent = player.current?.id === r.id;
-  const toTrack = (rec: Recording): Track => ({ id: rec.id, title: rec.title, tag: rec.tag, url: url ?? "" });
-
-  return (
-    <li
-      className={`flex items-center gap-3 rounded-xl border p-3 transition ${
-        isCurrent ? "border-terracotta/50 bg-terracotta/10" : "border-parchment/10 bg-ink-2"
-      }`}
-    >
-      <button
-        onClick={() => player.play(toTrack(r), queue.map(toTrack))}
-        disabled={!url}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink-3 disabled:opacity-30"
-      >
-        {isCurrent && player.isPlaying ? (
-          <Pause className="h-4 w-4 text-parchment" fill="currentColor" />
-        ) : (
-          <Play className="ml-0.5 h-4 w-4 text-parchment" fill="currentColor" />
-        )}
-      </button>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-parchment">{r.title}</p>
-        <p className="text-xs text-parchment-dim">
-          {r.tag} · {formatTime(r.duration ?? 0)}
-        </p>
-      </div>
-      <button
-        onClick={() => url && player.addToQueue(toTrack(r))}
-        disabled={!url}
-        className="shrink-0 text-parchment-dim/70 disabled:opacity-30"
-        title="Zur Warteschlange hinzufügen"
-      >
-        <ListPlus className="h-4 w-4" />
-      </button>
-      <button
-        onClick={() => url && downloadFile(url, safeFilename(r.title, "webm"))}
-        disabled={!url}
-        className="shrink-0 text-parchment-dim/70 disabled:opacity-30"
-        title="Herunterladen"
-      >
-        <Download className="h-4 w-4" />
-      </button>
-    </li>
-  );
-}
+import SoundItem from "./SoundItem";
 
 export default function Profile({
   userId,
+  currentUserId,
   onBack,
   showHeader = true,
 }: {
   userId: string;
+  currentUserId?: string;
   onBack?: () => void;
   showHeader?: boolean;
 }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const { savedIds, toggleSave } = useSavedRecordings(currentUserId ?? "");
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       const [{ data: profile }, { data: recs }] = await Promise.all([
-        supabase.from("profiles").select("avatar_url").eq("id", userId).maybeSingle(),
+        supabase.from("profiles").select("avatar_url, display_name").eq("id", userId).maybeSingle(),
         supabase
           .from("recordings")
           .select("*")
@@ -83,6 +38,7 @@ export default function Profile({
       ]);
       if (cancelled) return;
       setAvatarUrl(profile?.avatar_url ?? null);
+      setDisplayName(profile?.display_name ?? null);
       const list = (recs as Recording[]) ?? [];
       setRecordings(list);
 
@@ -120,6 +76,7 @@ export default function Profile({
               <UserIcon className="h-8 w-8 text-parchment-dim" strokeWidth={1.5} />
             </div>
           )}
+          {displayName && <p className="font-display text-lg font-semibold text-parchment">{displayName}</p>}
           <p className="text-sm text-parchment-dim">
             {loading ? "Lädt…" : `${recordings.length} öffentliche Aufnahme${recordings.length === 1 ? "" : "n"}`}
           </p>
@@ -134,7 +91,14 @@ export default function Profile({
 
       <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
         {recordings.map((r) => (
-          <ProfileRecording key={r.id} r={r} url={urls[r.id]} queue={recordings} />
+          <SoundItem
+            key={r.id}
+            recording={r}
+            url={urls[r.id]}
+            queue={recordings}
+            saved={currentUserId ? savedIds.has(r.id) : undefined}
+            onToggleSave={currentUserId ? () => toggleSave(r.id) : undefined}
+          />
         ))}
       </ul>
     </div>

@@ -99,7 +99,7 @@ function AppShell({ user }: { user: User }) {
             )}
             {tab === "library" && <Library user={user} refreshKey={refreshKey} />}
             {tab === "scan" && <PhotoScan user={user} />}
-            {tab === "discover" && <Discover />}
+            {tab === "discover" && <Discover user={user} />}
             {tab === "account" && <Account user={user} />}
           </main>
         </div>

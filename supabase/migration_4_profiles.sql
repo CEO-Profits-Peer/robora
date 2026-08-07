@@ -9,7 +9,9 @@ create table if not exists profiles (
 
 alter table profiles enable row level security;
 
+drop policy if exists "Profiles are readable by anyone" on profiles;
 create policy "Profiles are readable by anyone" on profiles for select using (true);
 
+drop policy if exists "Users manage own profile" on profiles;
 create policy "Users manage own profile" on profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);

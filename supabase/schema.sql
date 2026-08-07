@@ -25,12 +25,21 @@ create table if not exists vocab_cards (
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   avatar_url text,
+  display_name text,
   updated_at timestamptz not null default now()
+);
+
+create table if not exists saved_recordings (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  recording_id uuid not null references recordings(id) on delete cascade,
+  saved_at timestamptz not null default now(),
+  primary key (user_id, recording_id)
 );
 
 alter table recordings enable row level security;
 alter table vocab_cards enable row level security;
 alter table profiles enable row level security;
+alter table saved_recordings enable row level security;
 
 create policy "Users manage own recordings" on recordings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -45,6 +54,9 @@ create policy "Profiles are readable by anyone" on profiles for select using (tr
 
 create policy "Users manage own profile" on profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
+
+create policy "Users manage own saved recordings" on saved_recordings
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Storage-Buckets anlegen (kein Dashboard-Klick nötig):
 

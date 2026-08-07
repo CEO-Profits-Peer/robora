@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { useSavedRecordings } from "../hooks/useSavedRecordings";
 import type { Recording } from "../lib/types";
-import DiscoverItem from "./DiscoverItem";
+import SoundItem from "./SoundItem";
 import Profile from "./Profile";
 
-export default function Discover() {
+export default function Discover({ user }: { user: User }) {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
   const [query, setQuery] = useState("");
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { savedIds, toggleSave } = useSavedRecordings(user.id);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,7 +64,7 @@ export default function Discover() {
   }, [query]);
 
   if (viewingUserId) {
-    return <Profile userId={viewingUserId} onBack={() => setViewingUserId(null)} />;
+    return <Profile userId={viewingUserId} currentUserId={user.id} onBack={() => setViewingUserId(null)} />;
   }
 
   return (
@@ -84,13 +87,15 @@ export default function Discover() {
 
       <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
         {recordings.map((r) => (
-          <DiscoverItem
+          <SoundItem
             key={r.id}
             recording={r}
             url={urls[r.id]}
             avatarUrl={avatars[r.user_id]}
+            onAvatarClick={() => setViewingUserId(r.user_id)}
             queue={recordings}
-            onSelectProfile={setViewingUserId}
+            saved={savedIds.has(r.id)}
+            onToggleSave={() => toggleSave(r.id)}
           />
         ))}
       </ul>
