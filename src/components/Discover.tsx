@@ -8,14 +8,17 @@ import type { Recording } from "../lib/types";
 import SoundItem from "./SoundItem";
 import Profile from "./Profile";
 
+type PosterInfo = { avatar_url: string | null; display_name: string | null };
+
 export default function Discover({ user }: { user: User }) {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
-  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [posters, setPosters] = useState<Record<string, PosterInfo>>({});
   const [query, setQuery] = useState("");
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [onlyFollowed, setOnlyFollowed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const { savedIds, toggleSave } = useSavedRecordings(user.id);
   const { followingIds } = useFollows(user.id);
   const { likedIds, counts: likeCounts, toggleLike } = useLikes(
@@ -27,6 +30,7 @@ export default function Discover({ user }: { user: User }) {
     let cancelled = false;
     async function load() {
       setLoading(true);
+      setLoadError("");
       let req = supabase
         .from("recordings")
         .select("*")
@@ -37,7 +41,12 @@ export default function Discover({ user }: { user: User }) {
 
       const { data, error } = await req;
       if (cancelled) return;
-      if (error || !data) {
+      if (error) {
+        setLoadError(error.message);
+        setLoading(false);
+        return;
+      }
+      if (!data) {
         setLoading(false);
         return;
       }
@@ -54,13 +63,15 @@ export default function Discover({ user }: { user: User }) {
           })
         ),
         userIds.length
-          ? supabase.from("profiles").select("id, avatar_url").in("id", userIds).then((res) => res.data ?? [])
+          ? supabase.from("profiles").select("id, avatar_url, display_name").in("id", userIds).then((res) => res.data ?? [])
           : Promise.resolve([]),
       ]);
 
       if (!cancelled) {
         setUrls(Object.fromEntries(urlEntries));
-        setAvatars(Object.fromEntries(profileRows.map((p) => [p.id, p.avatar_url])));
+        setPosters(
+          Object.fromEntries(profileRows.map((p) => [p.id, { avatar_url: p.avatar_url, display_name: p.display_name }]))
+        );
         setLoading(false);
       }
     }
@@ -108,7 +119,13 @@ export default function Discover({ user }: { user: User }) {
 
       {loading && <p className="py-8 text-center text-sm text-parchment-dim">Lädt…</p>}
 
-      {!loading && visible.length === 0 && (
+      {!loading && loadError && (
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center text-sm text-red-400">
+          Fehler beim Laden: {loadError}
+        </div>
+      )}
+
+      {!loading && !loadError && visible.length === 0 && (
         <div className="rounded-2xl border border-dashed border-parchment/15 p-8 text-center text-sm text-parchment-dim">
           {onlyFollowed
             ? "Du folgst noch niemandem mit öffentlichen Aufnahmen."
@@ -124,7 +141,8 @@ export default function Discover({ user }: { user: User }) {
             key={r.id}
             recording={r}
             url={urls[r.id]}
-            avatarUrl={avatars[r.user_id]}
+            avatarUrl={posters[r.user_id]?.avatar_url}
+            posterName={posters[r.user_id]?.display_name}
             onAvatarClick={() => setViewingUserId(r.user_id)}
             queue={visible}
             saved={savedIds.has(r.id)}

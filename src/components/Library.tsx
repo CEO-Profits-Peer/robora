@@ -18,6 +18,7 @@ export default function Library({ user, refreshKey }: { user: User; refreshKey: 
   const [checkingId, setCheckingId] = useState<string | null>(null);
   const [flagged, setFlagged] = useState<{ id: string; reason: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [loadError, setLoadError] = useState("");
 
   const { savedIds, toggleSave } = useSavedRecordings(user.id);
   const [savedRecordings, setSavedRecordings] = useState<Recording[]>([]);
@@ -28,6 +29,7 @@ export default function Library({ user, refreshKey }: { user: User; refreshKey: 
     let cancelled = false;
     async function load() {
       setLoading(true);
+      setLoadError("");
       const { data, error } = await supabase
         .from("recordings")
         .select("*")
@@ -35,7 +37,12 @@ export default function Library({ user, refreshKey }: { user: User; refreshKey: 
         .order("created_at", { ascending: false });
 
       if (cancelled) return;
-      if (error || !data) {
+      if (error) {
+        setLoadError(error.message);
+        setLoading(false);
+        return;
+      }
+      if (!data) {
         setLoading(false);
         return;
       }
@@ -167,7 +174,14 @@ export default function Library({ user, refreshKey }: { user: User; refreshKey: 
       ) : (
         <>
           {loading && <p className="py-8 text-center text-sm text-parchment-dim">Lädt…</p>}
-          {!loading && filtered.length === 0 && (
+          {!loading && loadError && (
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center text-sm text-red-400">
+              Fehler beim Laden deiner Aufnahmen: {loadError}
+              <br />
+              <span className="text-xs text-red-400/70">Das ist wahrscheinlich kein Datenverlust — bitte melde diesen Fehler.</span>
+            </div>
+          )}
+          {!loading && !loadError && filtered.length === 0 && (
             <div className="rounded-2xl border border-dashed border-parchment/15 p-8 text-center text-sm text-parchment-dim">
               Noch keine Aufnahmen{filter !== "Alle" ? ` in "${filter}"` : ""}. Leg im Tab "Aufnehmen" los.
             </div>

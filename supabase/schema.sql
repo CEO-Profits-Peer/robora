@@ -141,10 +141,23 @@ create policy "Creators update their groups" on groups
 create policy "Creators delete their groups" on groups
   for delete using (auth.uid() = created_by);
 
-create policy "Members see membership" on group_members
-  for select using (
-    exists (select 1 from group_members gm where gm.group_id = group_members.group_id and gm.user_id = auth.uid())
+-- SECURITY DEFINER, damit die Mitgliedschaftsprüfung nicht die RLS-Policy von
+-- group_members selbst auslöst (das würde eine Endlosrekursion verursachen).
+create or replace function public.is_group_member(target_group_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from group_members
+    where group_id = target_group_id and user_id = auth.uid()
   );
+$$;
+
+create policy "Members see membership" on group_members
+  for select using (is_group_member(group_id));
 
 create policy "Users join groups" on group_members
   for insert with check (auth.uid() = user_id);

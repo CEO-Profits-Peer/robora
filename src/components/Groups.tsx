@@ -18,12 +18,19 @@ export default function Groups({ user }: { user: User }) {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     supabase
       .from("group_members")
       .select("groups(*)")
       .eq("user_id", user.id)
-      .then(({ data }) => {
+      .then(({ data, error: fetchErr }) => {
         if (cancelled) return;
+        if (fetchErr) {
+          setError(fetchErr.message);
+          setLoading(false);
+          return;
+        }
+        setError("");
         const list = ((data ?? []) as unknown as { groups: Group | null }[])
           .map((row) => row.groups)
           .filter((g): g is Group => Boolean(g));

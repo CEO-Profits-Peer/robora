@@ -20,6 +20,7 @@ export default function Profile({
 }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [followerCount, setFollowerCount] = useState(0);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -32,11 +33,16 @@ export default function Profile({
   const isOwnProfile = currentUserId === userId;
   const isFollowing = followingIds.has(userId);
 
+  function handleToggleFollow() {
+    setFollowerCount((c) => c + (isFollowing ? -1 : 1));
+    toggleFollow(userId);
+  }
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [{ data: profile }, { data: recs }] = await Promise.all([
+      const [{ data: profile }, { data: recs }, { count: followers }] = await Promise.all([
         supabase.from("profiles").select("avatar_url, display_name").eq("id", userId).maybeSingle(),
         supabase
           .from("recordings")
@@ -44,10 +50,12 @@ export default function Profile({
           .eq("user_id", userId)
           .eq("is_public", true)
           .order("created_at", { ascending: false }),
+        supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followed_id", userId),
       ]);
       if (cancelled) return;
       setAvatarUrl(profile?.avatar_url ?? null);
       setDisplayName(profile?.display_name ?? null);
+      setFollowerCount(followers ?? 0);
       const list = (recs as Recording[]) ?? [];
       setRecordings(list);
 
@@ -85,13 +93,19 @@ export default function Profile({
               <UserIcon className="h-8 w-8 text-parchment-dim" strokeWidth={1.5} />
             </div>
           )}
-          {displayName && <p className="font-display text-lg font-semibold text-parchment">{displayName}</p>}
-          <p className="text-sm text-parchment-dim">
-            {loading ? "Lädt…" : `${recordings.length} öffentliche Aufnahme${recordings.length === 1 ? "" : "n"}`}
-          </p>
+          {displayName ? (
+            <p className="font-display text-lg font-semibold text-parchment">{displayName}</p>
+          ) : (
+            <p className="text-sm text-parchment-dim/60">Ohne Namen</p>
+          )}
+          <div className="flex items-center gap-3 text-sm text-parchment-dim">
+            <span>{loading ? "Lädt…" : `${recordings.length} Aufnahme${recordings.length === 1 ? "" : "n"}`}</span>
+            <span className="text-parchment-dim/40">·</span>
+            <span>{followerCount} Follower</span>
+          </div>
           {currentUserId && !isOwnProfile && (
             <button
-              onClick={() => toggleFollow(userId)}
+              onClick={handleToggleFollow}
               className={`mt-1 flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium ${
                 isFollowing ? "border border-parchment/15 text-parchment-dim" : "bg-terracotta text-ink font-semibold"
               }`}

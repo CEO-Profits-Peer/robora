@@ -22,6 +22,7 @@ export default function SoundItem({
   url,
   queue,
   avatarUrl,
+  posterName,
   onAvatarClick,
   saved,
   onToggleSave,
@@ -35,6 +36,7 @@ export default function SoundItem({
   url: string | undefined;
   queue: Recording[];
   avatarUrl?: string | null;
+  posterName?: string | null;
   onAvatarClick?: () => void;
   saved?: boolean;
   onToggleSave?: () => void;
@@ -78,8 +80,9 @@ export default function SoundItem({
       </button>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-parchment">{r.title}</p>
-        <p className="text-xs text-parchment-dim">
+        <p className="truncate text-xs text-parchment-dim">
           {r.tag} · {formatTime(r.duration ?? 0)}
+          {posterName && <span className="text-parchment-dim/60"> · {posterName}</span>}
         </p>
       </div>
       {onToggleLike && (
