@@ -37,3 +37,12 @@ export type Group = {
   created_by: string;
   created_at: string;
 };
+
+export type GroupMessage = {
+  id: string;
+  group_id: string;
+  user_id: string;
+  body: string | null;
+  image_path: string | null;
+  created_at: string;
+};

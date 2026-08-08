@@ -48,6 +48,8 @@ npx vercel
 
 (oder Netlify/Cloudflare Pages). Die drei `.env`-Werte als Umgebungsvariablen im Hosting-Dashboard eintragen (gleiche Namen wie in `.env.example`).
 
+Besucherzahlen: [Vercel Analytics](https://vercel.com/docs/analytics) ist eingebaut und kostenlos (Free-Tier-Limit: 2.500 Events/Monat) — im Vercel-Dashboard unter dem Projekt-Tab "Analytics" einmalig aktivieren, dann siehst du dort Besucherzahlen & aufgerufene Seiten. Kein Code nötig, läuft automatisch.
+
 ## Funktionen
 
 - **Aufnehmen**: Mikrofon-Aufnahme oder vorhandene Audiodatei hochladen, mit Titel + Tag (Vokabeln/Grammatik/Sonstiges).
@@ -61,12 +63,14 @@ npx vercel
 - **Speichern**: Aufnahmen anderer per Lesezeichen-Icon merken, unter "Gespeichert" in Anhören wiederfinden.
 - **Quiz-Modus**: Spaced-Repetition-Abfrage deiner Vokabelkarten (vereinfachtes SM-2) — fällige Karten werden abgefragt, Wiederholintervall passt sich automatisch an dein Ergebnis an.
 - **Likes**: Herz-Icon auf öffentlichen Aufnahmen, mit sichtbarem Zähler.
-- **Gruppen**: Lerngruppe per Einladungscode erstellen/beitreten, Aufnahmen & Vokabelkarten gezielt mit der Gruppe teilen (kein offener Chat — bewusst weggelassen, siehe unten).
+- **Gruppen**: Lerngruppe per Einladungscode erstellen/beitreten, Aufnahmen & Vokabelkarten gezielt mit der Gruppe teilen. Eigener Live-Chat pro Gruppe (Text + Bild, per Supabase Realtime, ohne Neuladen).
 - **Account**: Profilbild + Name hochladen, E-Mail einsehen, Abmelden.
 
 ### Updates nachträglich einspielen
 
-Falls du das Projekt vor einem dieser Features eingerichtet hast, einmalig im SQL Editor nachholen (bei Neuinstallation bereits in `schema.sql` enthalten):
+Falls du das Projekt vor einem dieser Features eingerichtet hast: einmalig [`supabase/all_migrations.sql`](supabase/all_migrations.sql) komplett in den SQL Editor einfügen und ausführen — bündelt alles unten in einem Rutsch (bei Neuinstallation nicht nötig, ist bereits in `schema.sql` enthalten). Alle Migrationen sind idempotent (können gefahrlos mehrfach ausgeführt werden).
+
+Einzeln, falls du gezielt nur ein Feature nachrüsten willst:
 
 - [`supabase/migration_2_social.sql`](supabase/migration_2_social.sql) — `is_public`-Spalte + Freigabe-Policies für "Entdecken".
 - [`supabase/migration_3_avatars.sql`](supabase/migration_3_avatars.sql) — legt den `avatars`-Bucket per SQL an (kein Dashboard-Klick nötig) + Policies für Profilbilder.
@@ -76,12 +80,12 @@ Falls du das Projekt vor einem dieser Features eingerichtet hast, einmalig im SQ
 - [`supabase/migration_7_follows.sql`](supabase/migration_7_follows.sql) — Follow-System.
 - [`supabase/migration_8_likes.sql`](supabase/migration_8_likes.sql) — Likes.
 - [`supabase/migration_9_groups.sql`](supabase/migration_9_groups.sql) — Gruppen zum Teilen von Aufnahmen & Vokabelkarten.
-
-Alle Migrationen sind idempotent (können gefahrlos mehrfach ausgeführt werden).
+- [`supabase/migration_10_fix_group_rls.sql`](supabase/migration_10_fix_group_rls.sql) — Fix für eine Endlosrekursion in den Gruppen-Policies.
+- [`supabase/migration_11_group_chat.sql`](supabase/migration_11_group_chat.sql) — Live-Chat (Text + Bild) innerhalb von Gruppen.
 
 ### Hinweis zu Gruppen
 
-Gruppen teilen aktuell nur Inhalte (Aufnahmen, Vokabelkarten) — kein Freitext-Chat/Messaging zwischen Mitgliedern. Live-Chat wäre ein deutlich größeres eigenes Feature (Echtzeit-Infrastruktur, Nachrichtenmoderation, Missbrauchspotential bei offenem Messaging) und wurde bewusst nicht mitgebaut.
+Der Gruppen-Chat hat keine automatische Inhaltsmoderation (anders als "Entdecken", das öffentlich ist) — er ist nur für eingeladene Mitglieder sichtbar, ähnlich einem privaten Messenger-Chat.
 
 ## Login
 

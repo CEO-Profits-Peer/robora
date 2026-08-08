@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { ArrowLeft, LogOut, User as UserIcon, Volume2 } from "lucide-react";
+import { ArrowLeft, LogOut, MessageCircle, Share2, User as UserIcon, Volume2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { isTtsSupported, readCard } from "../lib/tts";
 import type { Group, Profile, Recording, VocabCard } from "../lib/types";
 import SoundItem from "./SoundItem";
+import GroupChat from "./GroupChat";
 
 export default function GroupDetail({
   groupId,
@@ -28,6 +29,7 @@ export default function GroupDetail({
   const [pickedCard, setPickedCard] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [tab, setTab] = useState<"chat" | "share">("chat");
 
   useEffect(() => {
     let cancelled = false;
@@ -129,6 +131,29 @@ export default function GroupDetail({
         </button>
       </div>
 
+      <div className="flex rounded-lg bg-ink-2 p-0.5 text-xs">
+        <button
+          onClick={() => setTab("chat")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition ${
+            tab === "chat" ? "bg-terracotta text-ink" : "text-parchment-dim"
+          }`}
+        >
+          <MessageCircle className="h-3.5 w-3.5" /> Chat
+        </button>
+        <button
+          onClick={() => setTab("share")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition ${
+            tab === "share" ? "bg-terracotta text-ink" : "text-parchment-dim"
+          }`}
+        >
+          <Share2 className="h-3.5 w-3.5" /> Geteilt
+        </button>
+      </div>
+
+      {tab === "chat" && <GroupChat groupId={groupId} user={user} members={members} />}
+
+      {tab === "share" && (
+      <>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2 rounded-xl border border-parchment/10 bg-ink-2 p-4">
           <p className="text-sm font-medium text-parchment/80">Aufnahme teilen</p>
@@ -226,6 +251,8 @@ export default function GroupDetail({
           </ul>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

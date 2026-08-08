@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { Analytics } from "@vercel/analytics/react";
 import { Mic, Library as LibraryIcon, Camera, Globe2, Users, UserCircle, type LucideIcon } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./lib/supabase";
 import Auth from "./components/Auth";
@@ -153,6 +154,10 @@ export default function App() {
   }, []);
 
   if (loading) return null;
-  if (!user) return <Auth />;
-  return <AppShell user={user} />;
+  return (
+    <>
+      {user ? <AppShell user={user} /> : <Auth />}
+      <Analytics />
+    </>
+  );
 }
