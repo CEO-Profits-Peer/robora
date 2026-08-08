@@ -114,10 +114,14 @@ export default function GroupChat({
           .upload(imagePath, pendingImage, { contentType: pendingImage.type });
         if (upErr) throw upErr;
       }
-      const { error: insErr } = await supabase
+      const { data: inserted, error: insErr } = await supabase
         .from("group_messages")
-        .insert({ group_id: groupId, user_id: user.id, body: body || null, image_path: imagePath });
+        .insert({ group_id: groupId, user_id: user.id, body: body || null, image_path: imagePath })
+        .select()
+        .single();
       if (insErr) throw insErr;
+      const msg = inserted as GroupMessage;
+      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setText("");
       setPendingImage(null);
     } catch (err) {

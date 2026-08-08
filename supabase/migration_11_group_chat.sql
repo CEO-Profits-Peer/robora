@@ -28,11 +28,13 @@ create policy "Authors delete their group messages" on group_messages
 -- Live-Updates aktivieren (falls noch nicht Teil der Publication).
 do $$
 begin
-  if not exists (
-    select 1 from pg_publication_tables
-    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'group_messages'
-  ) then
-    alter publication supabase_realtime add table group_messages;
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'group_messages'
+    ) then
+      alter publication supabase_realtime add table group_messages;
+    end if;
   end if;
 end $$;
 
