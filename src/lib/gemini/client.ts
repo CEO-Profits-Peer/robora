@@ -1,5 +1,5 @@
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
-const MODEL = "gemini-2.5-flash-lite";
+const MODEL = "gemini-flash-lite-latest";
 
 export const isGeminiConfigured = Boolean(API_KEY);
 
