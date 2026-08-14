@@ -5,10 +5,26 @@ import { supabase } from "../lib/supabase";
 import type { Group } from "../lib/types";
 import GroupDetail from "./GroupDetail";
 
-export default function Groups({ user }: { user: User }) {
+export default function Groups({
+  user,
+  openGroupId,
+  onOpened,
+}: {
+  user: User;
+  openGroupId?: string | null;
+  onOpened?: () => void;
+}) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingGroupId, setViewingGroupId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (openGroupId) {
+      setViewingGroupId(openGroupId);
+      onOpened?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openGroupId]);
   const [newName, setNewName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [creating, setCreating] = useState(false);

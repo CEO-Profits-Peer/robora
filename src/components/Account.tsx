@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Check, LogOut, Pencil, User as UserIcon } from "lucide-react";
+import { Bell, BellOff, Check, LogOut, Pencil, User as UserIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { getPushSubscriptionState, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../lib/push";
 import Profile from "./Profile";
 
 export default function Account({ user }: { user: User }) {
@@ -13,7 +14,34 @@ export default function Account({ user }: { user: User }) {
   const [name, setName] = useState<string>(user.user_metadata?.display_name ?? "");
   const [savingName, setSavingName] = useState(false);
 
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isPushSupported) return;
+    getPushSubscriptionState().then((state) => setPushEnabled(state === "subscribed"));
+  }, []);
+
+  async function togglePush() {
+    setPushBusy(true);
+    setPushError("");
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+      } else {
+        await subscribeToPush(user.id);
+        setPushEnabled(true);
+      }
+    } catch (err) {
+      setPushError(err instanceof Error ? err.message : "Benachrichtigungen konnten nicht geändert werden.");
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -122,6 +150,31 @@ export default function Account({ user }: { user: User }) {
 
         <p className="text-sm text-parchment-dim">{user.email}</p>
       </div>
+
+      {isPushSupported && (
+        <div className="rounded-xl border border-parchment/10 bg-ink-2 p-4">
+          <button
+            onClick={togglePush}
+            disabled={pushBusy}
+            className="flex w-full items-center justify-between gap-2 text-sm text-parchment disabled:opacity-50"
+          >
+            <span className="flex items-center gap-2">
+              {pushEnabled ? <Bell className="h-4 w-4 text-terracotta" /> : <BellOff className="h-4 w-4 text-parchment-dim" />}
+              Benachrichtigungen für Gruppen-Chat
+            </span>
+            <span
+              className={`relative h-6 w-11 shrink-0 rounded-full transition ${pushEnabled ? "bg-terracotta" : "bg-ink-3"}`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-parchment transition ${
+                  pushEnabled ? "left-[22px]" : "left-0.5"
+                }`}
+              />
+            </span>
+          </button>
+          {pushError && <p className="mt-2 text-xs text-red-400">{pushError}</p>}
+        </div>
+      )}
 
       <button
         onClick={() => supabase.auth.signOut()}

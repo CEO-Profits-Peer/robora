@@ -25,7 +25,7 @@ Eigene Latein-Voice-Recordings aufnehmen, im Hintergrund/bei gesperrtem Handy ab
 cp .env.example .env
 ```
 
-Trage in `.env` die drei Werte ein (Supabase URL, Supabase anon key, Gemini key).
+Trage in `.env` die Werte ein (Supabase URL, Supabase anon key, Gemini key). `VITE_VAPID_PUBLIC_KEY` ist optional — nur für Push-Benachrichtigungen nötig, siehe [Push-Benachrichtigungen einrichten](#push-benachrichtigungen-einrichten-optional).
 
 ### 4. Starten
 
@@ -46,7 +46,7 @@ Nach dem Deployen (siehe unten) die Seite in Safari (iOS) oder Chrome (Android) 
 npx vercel
 ```
 
-(oder Netlify/Cloudflare Pages). Die drei `.env`-Werte als Umgebungsvariablen im Hosting-Dashboard eintragen (gleiche Namen wie in `.env.example`).
+(oder Netlify/Cloudflare Pages). Die `.env`-Werte als Umgebungsvariablen im Hosting-Dashboard eintragen (gleiche Namen wie in `.env.example`).
 
 Besucherzahlen: [Vercel Analytics](https://vercel.com/docs/analytics) ist eingebaut und kostenlos (Free-Tier-Limit: 2.500 Events/Monat) — im Vercel-Dashboard unter dem Projekt-Tab "Analytics" einmalig aktivieren, dann siehst du dort Besucherzahlen & aufgerufene Seiten. Kein Code nötig, läuft automatisch.
 
@@ -64,7 +64,8 @@ Besucherzahlen: [Vercel Analytics](https://vercel.com/docs/analytics) ist eingeb
 - **Quiz-Modus**: Spaced-Repetition-Abfrage deiner Vokabelkarten (vereinfachtes SM-2) — fällige Karten werden abgefragt, Wiederholintervall passt sich automatisch an dein Ergebnis an.
 - **Likes**: Herz-Icon auf öffentlichen Aufnahmen, mit sichtbarem Zähler.
 - **Gruppen**: Lerngruppe per Einladungscode erstellen/beitreten, Aufnahmen & Vokabelkarten gezielt mit der Gruppe teilen. Eigener Live-Chat pro Gruppe (Text + Bild, per Supabase Realtime, ohne Neuladen).
-- **Account**: Profilbild + Name hochladen, E-Mail einsehen, Abmelden.
+- **Push-Benachrichtigungen**: Optional aktivierbar im Account-Tab — benachrichtigt bei neuen Gruppen-Chat-Nachrichten, auch wenn die App nicht offen ist. Setup siehe [Push-Benachrichtigungen einrichten](#push-benachrichtigungen-einrichten-optional).
+- **Account**: Profilbild + Name hochladen, Benachrichtigungen an/aus, E-Mail einsehen, Abmelden.
 
 ### Updates nachträglich einspielen
 
@@ -82,6 +83,21 @@ Einzeln, falls du gezielt nur ein Feature nachrüsten willst:
 - [`supabase/migration_9_groups.sql`](supabase/migration_9_groups.sql) — Gruppen zum Teilen von Aufnahmen & Vokabelkarten.
 - [`supabase/migration_10_fix_group_rls.sql`](supabase/migration_10_fix_group_rls.sql) — Fix für eine Endlosrekursion in den Gruppen-Policies.
 - [`supabase/migration_11_group_chat.sql`](supabase/migration_11_group_chat.sql) — Live-Chat (Text + Bild) innerhalb von Gruppen.
+- [`supabase/migration_12_push_notifications.sql`](supabase/migration_12_push_notifications.sql) — `push_subscriptions`-Tabelle für Web-Push-Benachrichtigungen.
+
+### Push-Benachrichtigungen einrichten (optional)
+
+Benachrichtigt Gruppenmitglieder bei neuen Chat-Nachrichten, auch wenn die App geschlossen ist. Ohne dieses Setup läuft die App normal weiter, nur ohne Push. Voraussetzung: [Supabase CLI](https://supabase.com/docs/guides/cli) (`npx supabase ...` reicht, keine globale Installation nötig).
+
+1. **VAPID-Schlüsselpaar generieren**: `npx web-push generate-vapid-keys`. Public Key → `VITE_VAPID_PUBLIC_KEY` in `.env` (und im Hosting-Dashboard). Private Key **nicht** committen, nur für Schritt 3.
+2. **Projekt verlinken**: `npx supabase login`, dann `npx supabase link --project-ref <dein-projekt-ref>` (Ref steht in der Supabase-URL, z.B. `mbyrxoshyvslevajshmi`).
+3. **Secrets setzen** (Private Key aus Schritt 1, plus eine Kontakt-Mail für den VAPID-Standard):
+   ```bash
+   npx supabase secrets set VAPID_PUBLIC_KEY=<public-key> VAPID_PRIVATE_KEY=<private-key> VAPID_SUBJECT=mailto:deine@email.de
+   ```
+4. **Edge Function deployen**: `npx supabase functions deploy send-chat-push` (Standard-JWT-Verifizierung bleibt aktiv — sicherer als ein öffentlicher Endpunkt).
+5. **Database Webhook einrichten** (Supabase Dashboard → **Database → Webhooks → Create a new hook**): Tabelle `group_messages`, Event `Insert`, Type `Supabase Edge Functions`, Ziel-Function `send-chat-push`. Supabase hängt die Authentifizierung dabei automatisch an — kein Secret manuell nötig.
+6. Fertig. Nutzer aktivieren Push individuell im Account-Tab (Browser-Berechtigung wird dabei abgefragt).
 
 ### Hinweis zu Gruppen
 

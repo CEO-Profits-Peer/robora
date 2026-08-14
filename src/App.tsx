@@ -59,6 +59,23 @@ function Brand() {
 function AppShell({ user }: { user: User }) {
   const [tab, setTab] = useState<Tab>("library");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [openGroupId, setOpenGroupId] = useState<string | null>(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("group");
+    if (fromUrl) window.history.replaceState(null, "", window.location.pathname);
+    return fromUrl;
+  });
+
+  useEffect(() => {
+    if (openGroupId) setTab("groups");
+    function onMessage(event: MessageEvent) {
+      if (event.data?.type === "open-group" && event.data.groupId) {
+        setOpenGroupId(event.data.groupId);
+        setTab("groups");
+      }
+    }
+    navigator.serviceWorker?.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker?.removeEventListener("message", onMessage);
+  }, [openGroupId]);
 
   return (
     <PlayerProvider>
@@ -105,7 +122,9 @@ function AppShell({ user }: { user: User }) {
             {tab === "library" && <Library user={user} refreshKey={refreshKey} />}
             {tab === "scan" && <PhotoScan user={user} />}
             {tab === "discover" && <Discover user={user} />}
-            {tab === "groups" && <Groups user={user} />}
+            {tab === "groups" && (
+              <Groups user={user} openGroupId={openGroupId} onOpened={() => setOpenGroupId(null)} />
+            )}
             {tab === "account" && <Account user={user} />}
           </main>
         </div>
